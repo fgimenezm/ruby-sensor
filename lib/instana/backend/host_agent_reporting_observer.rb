@@ -35,6 +35,9 @@ module Instana
       def report_to_backend
         report_metrics if ::Instana.config[:metrics][:enabled]
         report_traces if ::Instana.config[:tracing][:enabled]
+      rescue Net::ReadTimeout, Net::OpenTimeout => e
+        @logger.error("Unable to communicate with the agent. #{e}.")
+        @discovery.swap { nil }
       rescue StandardError => e
         @logger.error(%(#{e}\n#{e.backtrace.join("\n")}))
       end

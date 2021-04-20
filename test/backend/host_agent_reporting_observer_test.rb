@@ -189,4 +189,23 @@ class HostAgentReportingObserverTest < Minitest::Test
     subject.report_timer.block.call
     assert_equal({"pid" => 1234}, discovery.value)
   end
+
+  def test_report_timeout
+    stub_request(:post, "http://10.10.10.10:9292/com.instana.plugin.ruby.1234")
+      .to_timeout
+
+    client = Instana::Backend::RequestClient.new('10.10.10.10', 9292)
+    discovery = Concurrent::Atom.new({'pid' => 1234})
+
+    processor = Class.new do
+      def send
+        yield([{n: 'test'}])
+      end
+    end.new
+
+    subject = Instana::Backend::HostAgentReportingObserver.new(client, discovery, timer_class: MockTimer, processor: processor, logger: Logger.new('/dev/null'))
+
+    subject.report_timer.block.call
+    assert_nil discovery.value
+  end
 end
